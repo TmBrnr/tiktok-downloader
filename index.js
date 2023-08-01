@@ -3,27 +3,22 @@
     Don't remove credit.
 */
 
+const express = require('express');
 const fetch = require("node-fetch");
-const chalk = require("chalk");
-const inquirer = require("inquirer");
 const fs = require("fs");
 const puppeteer = require("puppeteer");
-const readline = require('readline');
+const app = express();
+app.use(express.json());
+const cors = require('cors');
+app.use(cors({ origin: 'http://localhost:3000' })); // replace with your React app's URL
+app.use(express.json());
+const path = require("path");
+
+
+
 
 const headers = new fetch.Headers();
 headers.append('User-Agent', 'TikTok 26.2.0 rv:262018 (iPhone; iOS 14.4.2; en_US) Cronet');
-
-const getInput = (message) => new Promise((resolve, reject) => {
-    inquirer.prompt([
-        {
-            type: "input",
-            name: "input",
-            message: message
-        }
-    ])
-    .then(res => resolve(res))
-    .catch(err => reject(err));
-});
 
 const getVideoWM = async (url) => {
     const idVideo = getIdVideo(url)
@@ -66,27 +61,37 @@ const getIdVideo = (url) => {
 
 const downloadMedia = async (data) => {
     const folder = "downloads/";
-    const fileName = `${data.id}.mp4`
+    const fileName = `${data.id}.mp4`;
     const downloadFile = fetch(data.url);
-    const file = fs.createWriteStream(folder + fileName);
-    
-    downloadFile.then(res => {
-        res.body.pipe(file);
-        file.on("finish", () => {
-            file.close();
-            console.log(chalk.green("[+] Downloaded successfully"));
-        });
-        file.on("error", (err) => {
-            console.log(chalk.red("[X] Error: " + err));
+    const file = fs.createWriteStream(path.join(folder, fileName));
+  
+    return new Promise((resolve, reject) => {
+        downloadFile.then(res => {
+            res.body.pipe(file);
+            file.on("finish", () => {
+                file.close();
+                console.log("[+] Downloaded successfully");
+                resolve(fileName); // Resolve promise with fileName when download is complete
+            });
+            file.on("error", (err) => {
+                console.log("[X] Error: " + err);
+                reject(err);
+            });
         });
     });
 }
 
-(async () => {
-    const urlInput = await getInput("Enter the URL : ");
-    const url = urlInput.input;
-    const choice = await getInput("Choose a option: With Watermark, Without Watermark");
-    console.log(chalk.green(`[*] Downloading video from URL: ${url}`));
-    var data = (choice.input == "With Watermark") ? await getVideoWM(url) : await getVideoNoWM(url);
-    await downloadMedia(data);
-})();
+app.get('/download', async (req, res) => {
+    const url = req.query.url;
+    const watermark = req.query.watermark;
+    console.log(`[*] Downloading video from URL: ${url}`);
+    var data = (watermark === "With Watermark") ? await getVideoWM(url) : await getVideoNoWM(url);
+    const fileName = await downloadMedia(data);
+    res.setHeader('Content-Disposition', 'attachment; filename=' + fileName);
+    res.setHeader('Content-Transfer-Encoding', 'binary');
+    res.sendFile(path.join(__dirname, `downloads/${fileName}`));
+});
+
+const port = process.env.PORT || 5000;
+app.listen(port, () => console.log(`Server started on Port ${port}`));
+
