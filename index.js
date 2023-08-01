@@ -1,3 +1,8 @@
+/*  by Naufal Taufiq Ridwan
+    Github : https://github.com/n0l3r
+    Don't remove credit.
+*/
+
 const fetch = require("node-fetch");
 const chalk = require("chalk");
 const inquirer = require("inquirer");
