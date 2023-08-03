@@ -12,10 +12,12 @@ node index
 
 <br>
 <h3>Push to Cloud</h3>
+```
 docker build -t tiktok-downloader
 docker tag tiktok-downloader:latest gcr.io/PROJECT_ID/tiktok-downloader
 docker push gcr.io/PROJECT_ID/tiktok-downloader
 gcloud run deploy --image gcr.io/PROJECT_ID/tiktok-downloader --platform managed
+```
 
 
 
